@@ -1,0 +1,6 @@
+"name": "rustdev",
+"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1.3.1": {}
+  }
+}
