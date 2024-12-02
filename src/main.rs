@@ -92,7 +92,7 @@ impl TryInto<String> for ZolaDoc {
     type Error = Box<dyn std::error::Error>;
     fn try_into(self) -> Result<String, Self::Error> {
         Ok(format!(
-            "+++\n{}\n+++\n{}",
+            "+++\n{}+++\n{}",
             toml::to_string(&self.front)?,
             self.content
         ))
