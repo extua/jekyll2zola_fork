@@ -5,3 +5,6 @@
 ### Caveats
 
 It does absolutely nothing with the actual markdown. No guarantee zola will understand the dialect you use in there.
+
+
+- [ ] Read file and separate the yaml from the rest of the file
