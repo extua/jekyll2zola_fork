@@ -1,157 +1,41 @@
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::env::args;
-use std::fmt::Write;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
-use std::str::FromStr;
+use std::fs;
+use std::error::Error;
 
-use serde::{Deserialize, Serialize};
-use toml::{value::Datetime, Value as Toml};
-
-#[derive(Copy, Clone)]
-enum ParserState {
-    Unknown,
-    FrontMatter,
-    Content,
-}
-
-struct Parser<'a> {
-    file_path: &'a Path,
-    state: ParserState,
-    raw_front: String,
-    front: Option<JekyllFront>,
-    content: String,
-}
-
-#[derive(Debug)]
-struct JekyllDoc {
-    front: JekyllFront,
-    content: String,
-}
-
-impl JekyllDoc {
-    fn open_file<P: AsRef<Path>>(file_path: P) -> Option<Self> {
-        Parser::new(&file_path).read().unwrap().into_jekyll()
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct JekyllFront {
-    title: String,
-    date: String,
-    subtitle: String,
-    author: String,
-    #[serde(flatten)]
-    extra: Option<HashMap<String, Toml>>,
-}
-
-#[derive(Debug, Serialize)]
-struct ZolaFront {
-    title: String,
-    date: Datetime,
-    description: String,
-    author: String,
-    #[serde(flatten)]
-    extra: Option<HashMap<String, Toml>>,
-}
-
-impl TryInto<ZolaFront> for JekyllFront {
-    type Error = Box<dyn std::error::Error>;
-
-    fn try_into(self) -> Result<ZolaFront, Self::Error> {
-        Ok(ZolaFront {
-            title: self.title,
-            date: Datetime::from_str(&self.date)?,
-            description: self.subtitle,
-            author: self.author,
-            extra: self.extra,
-        })
-    }
-}
-impl TryInto<ZolaDoc> for JekyllDoc {
-    type Error = Box<dyn std::error::Error>;
-
-    fn try_into(self) -> Result<ZolaDoc, Self::Error> {
-        Ok(ZolaDoc {
-            front: self.front.try_into()?,
-            content: self.content,
-        })
-    }
-}
-
-#[derive(Debug)]
-struct ZolaDoc {
-    front: ZolaFront,
-    content: String,
-}
-
-impl TryInto<String> for ZolaDoc {
-    type Error = Box<dyn std::error::Error>;
-    fn try_into(self) -> Result<String, Self::Error> {
-        Ok(format!(
-            "+++\n{}+++\n{}",
-            toml::to_string(&self.front)?,
-            self.content
-        ))
-    }
-}
-
-impl<'a> Parser<'a> {
-    fn new<P: AsRef<Path>>(file_path: &'a P) -> Self {
-        Self {
-            file_path: file_path.as_ref(),
-            state: ParserState::Unknown,
-            front: None,
-            raw_front: String::new(),
-            content: String::new(),
-        }
+fn readfile(file_path: &str) -> Result<String, Box<dyn Error>> {
+    println!("file path {}", file_path);
+    let filestring: String = fs::read_to_string(file_path)?;
+        println!("file string read");
+        Ok(filestring)
     }
 
-    fn read(mut self) -> Result<Self, Box<dyn std::error::Error>> {
-        use ParserState::*;
-
-        let input = File::open(self.file_path)?;
-        let file = BufReader::new(input);
-
-        for line in file.lines() {
-            match (self.state, line?.as_ref()) {
-                (Unknown, "---") => self.state = FrontMatter,
-                (FrontMatter, "---") => self.state = Content,
-                (FrontMatter, line_content) => writeln!(&mut self.raw_front, "{}", line_content)?,
-                (Content, line_content) => writeln!(&mut self.content, "{}", line_content)?,
-                _ => {}
-            }
-        }
-
-        self.front = serde_yaml::from_str(&self.raw_front)?;
-
-        Ok(self)
-    }
-
-    fn into_jekyll(self) -> Option<JekyllDoc> {
-        if let Some(front) = self.front {
-            Some(JekyllDoc {
-                front,
-                content: self.content,
-            })
-        } else {
-            None
-        }
-    }
+fn main() {
+    let file_path: &str = "tests/2024-11-20-jekyll_test_page.md";
+    let file_to_string: String = match readfile(file_path) {
+        Ok(v) => v,
+        Err(e) => panic!("file not found at {file_path}, error returned: {e}"),
+      };
+    print!("{}",file_to_string);
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(file_path) = args().nth(1) {
-        if let Some(jekyll) = JekyllDoc::open_file(&file_path) {
-            let zola: ZolaDoc = jekyll.try_into()?;
-            let doc: String = zola.try_into()?;
-            println!("{}", doc);
-        }
-    } else {
-        eprintln!("no input")
-    }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    Ok(())
+    #[test]
+    fn it_reads_the_file_to_string() {
+        let file_path: &str = "tests/2024-11-20-jekyll_test_page.md";
+        let file_to_string = readfile(file_path).expect("unable to read file");
+        let test_file_string: String = "---
+layout: page
+date: 2024-11-20
+title: Jekyll test page
+subtitle: This is a subtitle
+author: test author
+location: Oxford
+tags: [test post, jekyll, zola, rust]
+---
+
+This is a test jekyll page".to_string();
+        assert_eq!(file_to_string, test_file_string);
+    }
 }
