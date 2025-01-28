@@ -4,12 +4,11 @@ use std::io::{BufRead, BufReader};
 use std::fs::File;
 use std::fmt::Write;
 use std::str::FromStr;
-use std::convert::{TryInto,TryFrom};
+use std::convert::TryInto;
 use std:: path::Path;
 
 use toml::{Value as Toml, value::Datetime};
 use serde::{Serialize, Deserialize};
-use serde_yaml::Value as Yaml;
 
 #[derive(Copy, Clone)]
 enum ParserState {
