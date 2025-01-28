@@ -33,8 +33,8 @@ struct JekyllDoc {
 }
 
 impl JekyllDoc {
-    fn open_file(file_path: &AsRef<Path>) -> Option<Self> {
-        Parser::new(&file_path).read().unwrap().into_jekyll()
+    fn open_file<P: AsRef<Path>>(file_path: P) -> Option<Self> {
+            Parser::new(&file_path).read().unwrap().into_jekyll()
     }
 }
 
@@ -97,8 +97,7 @@ impl TryInto<String> for ZolaDoc {
 }
 
 impl<'a> Parser<'a> {
-    fn new(file_path: &'a AsRef<Path>) -> Self {
-
+    fn new<P: AsRef<Path>>(file_path: &'a P) -> Self {
         Self {
             file_path:
             file_path.as_ref(),
