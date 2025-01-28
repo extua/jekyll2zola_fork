@@ -1,14 +1,14 @@
 use std::collections::HashMap;
-use std::env::args;
-use std::io::{BufRead, BufReader};
-use std::fs::File;
-use std::fmt::Write;
-use std::str::FromStr;
 use std::convert::TryInto;
-use std:: path::Path;
+use std::env::args;
+use std::fmt::Write;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::Path;
+use std::str::FromStr;
 
-use toml::{Value as Toml, value::Datetime};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use toml::{value::Datetime, Value as Toml};
 
 #[derive(Copy, Clone)]
 enum ParserState {
@@ -33,7 +33,7 @@ struct JekyllDoc {
 
 impl JekyllDoc {
     fn open_file<P: AsRef<Path>>(file_path: P) -> Option<Self> {
-            Parser::new(&file_path).read().unwrap().into_jekyll()
+        Parser::new(&file_path).read().unwrap().into_jekyll()
     }
 }
 
@@ -67,7 +67,6 @@ impl TryInto<ZolaFront> for JekyllFront {
             description: self.subtitle,
             author: self.author,
             extra: self.extra,
-
         })
     }
 }
@@ -91,15 +90,18 @@ struct ZolaDoc {
 impl TryInto<String> for ZolaDoc {
     type Error = Box<dyn std::error::Error>;
     fn try_into(self) -> Result<String, Self::Error> {
-        Ok(format!("+++\n{}\n+++\n{}", toml::to_string(&self.front)?, self.content))
+        Ok(format!(
+            "+++\n{}\n+++\n{}",
+            toml::to_string(&self.front)?,
+            self.content
+        ))
     }
 }
 
 impl<'a> Parser<'a> {
     fn new<P: AsRef<Path>>(file_path: &'a P) -> Self {
         Self {
-            file_path:
-            file_path.as_ref(),
+            file_path: file_path.as_ref(),
             state: ParserState::Unknown,
             front: None,
             raw_front: String::new(),
@@ -113,11 +115,10 @@ impl<'a> Parser<'a> {
         let input = File::open(self.file_path)?;
         let file = BufReader::new(input);
 
-
         for line in file.lines() {
             match (self.state, line?.as_ref()) {
-                (Unknown, "---") => self.state = FrontMatter ,
-                (FrontMatter, "---") => self.state = Content ,
+                (Unknown, "---") => self.state = FrontMatter,
+                (FrontMatter, "---") => self.state = Content,
                 (FrontMatter, line_content) => writeln!(&mut self.raw_front, "{}", line_content)?,
                 (Content, line_content) => writeln!(&mut self.content, "{}", line_content)?,
                 _ => {}
@@ -131,14 +132,17 @@ impl<'a> Parser<'a> {
 
     fn into_jekyll(self) -> Option<JekyllDoc> {
         if let Some(front) = self.front {
-            Some(JekyllDoc{front, content: self.content})
+            Some(JekyllDoc {
+                front,
+                content: self.content,
+            })
         } else {
             None
         }
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>>{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(file_path) = args().nth(1) {
         if let Some(jekyll) = JekyllDoc::open_file(&file_path) {
             let zola: ZolaDoc = jekyll.try_into()?;
