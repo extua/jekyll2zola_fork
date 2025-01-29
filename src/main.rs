@@ -7,6 +7,7 @@ use std::str::FromStr;
 use std::convert::{TryInto,TryFrom};
 use std:: path::Path;
 
+use toml::value::Table;
 use toml::{Value as Toml, value::Datetime};
 use serde::{Serialize, Deserialize};
 use serde_yaml::Value as Yaml;
@@ -45,7 +46,7 @@ struct JekyllFront {
     subtitle: String,
     author: String,
     #[serde(flatten)]
-    extra: Option<HashMap<String, Toml>>,
+    extra: Option<Table>,
 }
 
 #[derive(Debug, Serialize)]
@@ -55,7 +56,7 @@ struct ZolaFront {
     description: String,
     author: String,
     #[serde(flatten)]
-    extra: Option<HashMap<String, Toml>>,
+    extra: Option<Table>,
 }
 
 impl TryInto<ZolaFront> for JekyllFront {
